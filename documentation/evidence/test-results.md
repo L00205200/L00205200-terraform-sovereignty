@@ -1,7 +1,7 @@
 # Test results and evidence – ATUL00205200 (L00205200)
 
 Date tested: 14 November 2026
-Terraform version: 1.17.1 Sentinel CLI version: ______ AWS provider: 6.63.0
+Terraform version: 1.17.1 Sentinel CLI version: v0.40.0 AWS provider: 6.63.0
 HCP Terraform: organisation `ATUL00205200`, workspace `sovereignty-ie`, policy set `atul00205200-policies`
 
 ## Summary
@@ -11,6 +11,7 @@ HCP Terraform: organisation `ATUL00205200`, workspace `sovereignty-ie`, policy s
 | Sentinel mock tests (12 tests, 6 policy files) | all PASS | ✅ all PASS |
 | Compliant plan in HCP Terraform | all 5 policies pass, apply allowed | ✅ 5 of 5 passed |
 | Non-compliant plan in HCP Terraform | `compliance_all` fails, run blocked | ✅ hard failed – run blocked |
+| Apply + destroy of the compliant plan | resources created in eu-west-1, then removed | ✅ 17 added / 17 destroyed |
 
 ## 1. Sentinel mock tests (local)
 
@@ -88,7 +89,7 @@ Screenshot: `screenshots/01-sentinel-test-local.png`
 
 ## 2. Sentinel mock tests (GitHub Actions)
 
-Link to the workflow run: ______
+Link to the workflow run: https://github.com/L00205200/L00205200-terraform-sovereignty/actions/runs/43709548251
 
 Screenshot: `screenshots/02-github-actions-green.png`
 
@@ -116,6 +117,7 @@ Logs: [`hcp-compliant-run-logs.txt`](hcp-compliant-run-logs.txt)
 | ec2_instance | advisory | ✅ pass | approved_instance_type = true |
 
 Screenshots:
+- `screenshots/00-hcp-policy-set.png` – policy set `atul00205200-policies` with the 5 policies, scoped to `sovereignty-ie`
 - `screenshots/03-hcp-compliant-run-overview.png` – run page: "Policy checks 5 of 5 passed", +17 resources, "Planned and finished"
 - `screenshots/04-hcp-compliant-policy-details.png` – all 5 policies passed
 
@@ -153,13 +155,24 @@ Screenshots:
 
 ## 5. (Optional) Supply chain fail – provider not pinned
 
-Not done / done: ______
+Not done. The supply chain rules are tested with the mock data instead (section 1: `supply_chain` and `compliance_all` fail tests).
 
-Screenshot: `screenshots/07-hcp-supply-chain-fail.png`
+## 6. Apply and destroy of the compliant plan
 
-## 6. (Optional) Apply and destroy of the compliant plan
+Command (Windows Command Prompt, terraform folder):
+```
+terraform apply
+terraform destroy
+```
 
-Not done – only `terraform plan` was used, so no AWS resources were created and there was no cost.
+- `terraform apply`: the Sentinel policy check passed again (5 of 5), and 17 resources were created in **eu-west-1**. Result: `Apply complete! Resources: 17 added, 0 changed, 0 destroyed.`
+- Checked in the AWS console (region Europe (Ireland)): EC2 instance `atul00205200-app` (t3.micro), EBS volume `atul00205200-data` (encrypted), S3 bucket `atul00205200-records-...`
+- `terraform destroy`: removed everything. Result: `Destroy complete! Resources: 17 destroyed.`
+
+Screenshots:
+- `screenshots/07-hcp-apply-success.png` – "Apply complete! Resources: 17 added"
+- `screenshots/08-aws-console-eu-west-1.png` – EC2 resources in Europe (Ireland)
+- `screenshots/09-destroy-complete.png` – "Destroy complete! Resources: 17 destroyed."
 
 ## 7. HCP Sentinel mocks
 
@@ -167,7 +180,6 @@ Downloaded from the compliant run and saved to `hcp-mocks/`: ☐ yes ☐ not ava
 
 ## 8. What I learned / problems I hit
 
-> Raju: rewrite these in your own words before you submit, and delete this line.
 
 - My first plan failed with "No valid credential sources found". I had typed the AWS access key into the **Key** box of the workspace variable instead of the **Value** box. The keys must be environment variables called `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 - HCP Terraform Free only allowed one hard-mandatory policy in my organisation. Soft-mandatory was not available, and after that only advisory was left. I had to change my design and combine every blocking rule into one policy, `compliance_all`.
