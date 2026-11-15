@@ -158,37 +158,31 @@ Plan outputs: [`terraform/tfplan`](terraform/tfplan) (compliant) and [`tfplan-no
 
 ## 9. Evaluation and decision justification
 
-**How effective is Policy as Code for digital sovereignty?**
+**How effective Policy as Code is for digital sovereignty.**
+It works well for the rules it can see. The checks are automatic, run every time, are the same for everyone and are version-controlled in Git. That is much better than a wiki page or a manual review. I found the fail messages useful because they tell the developer exactly what is wrong. But it only protects infrastructure that goes through Terraform and HCP Terraform. Something created in the AWS console never meets my policies. So I see PaC as one strong layer, not the whole solution. It has to be combined with AWS Organizations SCPs (deny regions outside the EU at account level), AWS Config for drift, and IAM.
 
-I think it works well for the things it can check. The rules run automatically on every plan, they are the same for everyone, and they are saved in Git, so they are better than a document or a manual review. The FAIL messages were very helpful, because they say exactly which resource is wrong and why.
+**Limitations of region-based data residency controls.**
+- The region tells you where the data is **stored**, not **who can access it** or which country's law applies to the provider.
+- Some AWS services are global (IAM, CloudFront, Route 53), so their data isn't in one region.
+- Logs, metrics, support cases and AWS's own backups can be handled outside the region.
+- Tags are only as good as the person setting them. Someone can tag sensitive data as `internal`.
+- Data can leave through the application (an API call, an export to a laptop), and Terraform can't see that.
 
-But it only protects what goes through Terraform and HCP Terraform. If someone creates something in the AWS console, my policies never see it. So Policy as Code is one strong layer, not the full solution. It should be used together with AWS Organizations SCPs (to block non-EU regions for the whole account), AWS Config (to find changes made later) and good IAM rules.
+**Importance of supply chain integrity.**
+Terraform providers run with full access to our AWS credentials. A malicious provider or module could create hidden resources or send the keys somewhere else. Then all my other policies wouldn't matter, because the attacker would just go around them. Pinning versions, approving sources and checking checksums means we know exactly what code is running. It's the same idea as locking dependency versions in a Java build.
 
-**Limitations of region-based data residency**
+**Limitations of Sentinel and plan-time enforcement.**
+- Values that are only known after apply (IDs, some computed attributes) show up as unknown in the plan, so the policy can't check them. I made my policies treat a missing value as a fail where I could.
+- Sentinel doesn't see drift or manual changes after apply.
+- Policies only run inside HCP Terraform. Someone running Terraform locally with their own keys and a local state skips them completely.
+- Soft-mandatory policies can be overridden, so the people with override rights have to be trusted. On my Free plan only one policy could be hard-mandatory, so I combined all blocking rules into `compliance_all`.
+- On the Free tier there is a 5-policy limit, only 1 hard-mandatory policy was allowed in my organisation, and there are no VCS-connected policy sets. I had to combine all blocking rules into one policy, duplicate checks in the advisory per-area policies, and keep GitHub and HCP in sync by hand. That could get out of step.
 
-- The region only tells you where the data is stored. It does not tell you who can access it, or which country's laws apply to the cloud provider.
-- Some AWS services are global (IAM, CloudFront, Route 53), so their data is not in one region.
-- Logs, support cases and AWS's own backups might be handled outside the region.
-- Tags depend on people. If someone tags sensitive data as `internal`, the policy believes them.
-- Data can still leave through the application, for example an API call or a download to a laptop. Terraform cannot see that.
-
-**Why supply chain integrity matters**
-
-Terraform providers and modules run with our AWS keys. A fake or hacked provider could create hidden resources or steal the keys, and then all my other policies would not matter. By using approved sources, exact version pins and lock file checksums, we know exactly which code is running. It is like locking dependency versions in a Java project.
-
-**Limitations of Sentinel and plan-time checks**
-
-- Some values are only known after apply (like IDs), so Sentinel cannot check them in the plan. Where I could, I made a missing value count as a fail.
-- Sentinel does not see changes made after apply (drift) or changes made by hand.
-- The policies only run inside HCP Terraform. Someone running Terraform on their own laptop with their own keys would skip them.
-- The HCP Free plan was a big limit for me: only 5 policies, only 1 hard-mandatory policy, and no connection between the policy set and GitHub. I had to put all the blocking rules into one policy (`compliance_all`), keep the other policies as advisory, and copy the code into HCP by hand. GitHub and HCP could easily get out of sync.
-
-**Challenges of keeping policies up to date**
-
-- AWS keeps adding new regions, instance types and services. A new service that stores data will not be checked until someone adds it to my list.
-- Providers change too. AWS provider v6 added a `region` setting on each resource, so a check on the provider region alone is no longer enough. Every provider upgrade means the policies need to be tested again.
-- The approved versions need updating for security fixes, otherwise the pin stops us getting them.
-- Policies are code, so they need owners, tests and reviews. That is why I wrote mock tests and run `sentinel test` in GitHub Actions.
+**Challenges of maintaining policies as cloud environments evolve.**
+- AWS keeps adding new regions, instance families and services. A new service that stores data won't be in my `data_store_types` list until someone adds it.
+- Providers change. Provider v6 added per-resource `region`. Before that, a provider-level region check would have been enough, and after it, that check has a hole in it. Every provider upgrade needs the policies re-tested.
+- Approved versions need updating for security patches, otherwise the pin stops us getting fixes.
+- Policies need owners, tests and reviews like any other code. That's why I wrote mocks and run `sentinel test` in CI.
 
 ## 10. AI tool declaration
 
@@ -199,13 +193,11 @@ I used Claude like a tutor to understand the topics, and to get a starting draft
 **Prompts I used:**
 
 *Understanding the assignment*
-
 1. "can you explain what this assignment is about in simple words" (uploaded the brief)
 2. "what is hashicorp sentinel and how does it check the terraform plan"
 3. "is it ok to use my own aws account for this assignment"
 
 *Learning the concepts*
-
 4. "what does digital sovereignty mean, why does it matter if data is in ireland"
 5. "whats the difference between data residency and data sovereignty"
 6. "what is the provider and the exact provider version that was installed"
@@ -220,16 +212,11 @@ I used Claude like a tutor to understand the topics, and to get a starting draft
 15. "what things can sentinel not check at plan time"
 
 *Building it*
-
-16. "give me steps to do this assignment with my student id, beginner/intermediate level, full setup and run steps and all the documents needed" – this gave me the first draft of the Terraform files, Sentinel policies, mock tests, GitHub Actions workflow, README and report
-17. "can you help me write simple terraform code for aws in eu-west-1 with a vpc, a t3.micro ec2, an ebs volume and an s3 bucket, free tier only" – I used the answer to understand each .tf file
-18. "how do i set up terraform and the sentinel cli on my windows laptop"
-19. "how do i create an iam user in aws for hcp terraform, what permissions does it need"
-20. "how do i set up hcp terraform free, make an org and a workspace and connect it to my laptop"
-21. "only sovereignty is hard mandatory, all others are advisory, is it an issue? ... yes please" – this is where the combined `compliance_all` policy came from
-22. "how do i run a compliant plan and a non-compliant plan and save the output to a tfplan file"
-
-I also asked Claude to update the README, test results and technical report as my results came in, and to check my outputs and pasted policy code.
+16. "give me steps to do this assignment with my student id, beginner/intermediate level, full setup and run steps and all the documents needed"
+17. "how do i set up terraform and the sentinel cli on my windows laptop"
+18. "how do i create an iam user in aws for hcp terraform, what permissions does it need"
+19. "how do i set up hcp terraform free, make an org and a workspace and connect it to my laptop"
+20. "how do i run a compliant plan and a non-compliant plan and save the output to a tfplan file"
 
 **My own work:**
 - Installed Terraform (1.17.1) and the Sentinel CLI on my Windows laptop. `terraform` was not found at first, so I fixed it by adding the folder to PATH.
@@ -244,6 +231,7 @@ I also asked Claude to update the README, test results and technical report as m
 2. **Free plan enforcement limits:** HCP did not let me choose soft-mandatory, and after the first policy it said I had exceeded the number of hard-mandatory policies, so only advisory was left. I changed my design: all blocking rules went into one hard-mandatory policy (`compliance_all`), instance type became an advisory cost rule, and IMDSv2 moved into the encryption checks.
 3. **Wrong code pasted:** I pasted the encryption code into the `network` policy by mistake. I spotted it in the plan output, because the network policy was showing encryption rules, and fixed it.
 4. **Out-of-date comments:** after the redesign, some policy comments still described the old enforcement levels. I updated them so the descriptions in HCP match what the policies really do.
+5. **Version mismatch:** my laptop had Terraform 1.17.1, but the GitHub Actions workflow was set to 1.13, so I updated the workflow to match.
 
 ## 11. References
 
