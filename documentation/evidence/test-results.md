@@ -176,13 +176,13 @@ Screenshots:
 
 ## 7. HCP Sentinel mocks
 
-Downloaded from the compliant run and saved to `hcp-mocks/`: ☐ yes ☐ not available
+Downloaded from the compliant run and saved to `hcp-mocks/`: ✅ yes
 
 ## 8. What I learned / problems I hit
 
 
-- My first plan failed with "No valid credential sources found". I had typed the AWS access key into the **Key** box of the workspace variable instead of the **Value** box. The keys must be environment variables called `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
-- HCP Terraform Free only allowed one hard-mandatory policy in my organisation. Soft-mandatory was not available, and after that only advisory was left. I had to change my design and combine every blocking rule into one policy, `compliance_all`.
-- When I pasted the policies into HCP, I put the encryption code into the `network` policy by mistake. I only noticed because the plan output showed encryption rules under the network policy. The policy descriptions and rule names in the output helped me spot it.
-- The mock tests with `sentinel test` let me check the policies before using HCP, without creating anything in AWS.
-- Checking the region of every resource matters. In the non-compliant run, the offshore backup bucket used its own `region` setting, and the policy still caught it.
+- When I ran my first terraform plan, it failed with "No valid credential sources found". I was confused at first, but then I saw that I had put my AWS access key in the Key box instead of the Value box in HCP. After I added `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` properly as environment variables, the plan worked. I learned to read the error message carefully before changing anything.
+- The HCP Free plan was harder than I expected. I wanted most of my policies to be hard-mandatory, but HCP only let me make one, and soft-mandatory was not available. At first I thought this was a big problem, because SSH open to the world would only give a warning. So I put all the important rules into one policy, `compliance_all`, and kept the others as advisory.
+- I made a copy-paste mistake and put the encryption code into the network policy in HCP. I only saw it when I read the plan output and the network policy was showing encryption rules. Now I know to check the policy name and rules in the output after every change.
+- Testing with `sentinel test` and mock data was really useful for me. I could see straight away if a policy passed the good plan and failed the bad one, without paying anything or creating anything in AWS.
+- I was surprised that one resource can have its own region in AWS provider v6. In my bad test, the backup bucket was in us-east-1 even though I also checked the main region, and my policy still caught it. This showed me that checking only the provider region is not enough for data sovereignty.
