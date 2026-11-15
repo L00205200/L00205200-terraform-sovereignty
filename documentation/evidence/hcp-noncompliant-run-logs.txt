@@ -1,0 +1,135 @@
+================ Results for policy set: <empty policy set name> ===============
+
+Sentinel Result: false
+
+This result means that one or more Sentinel policies failed. More than likely,
+this was due to the discovery of violations by the main rule and other
+sub-rules. Please see the details of the policies executed below to find the
+violation(s), which is usually indicated by a rule with a false boolean value,
+or non-zero collection data.
+
+5 policies evaluated.
+
+## Policy 1: encryption (advisory)
+
+Result: false
+
+Description:
+  encryption.sentinel  ATUL00205200 - EBS encryption + IMDSv2 policy (L00205200)    What it checks:    1. every EC2 instance has a root_block_device with encrypted = true    2. any extra ebs_block_device on the instance is encrypted    3. every aws_ebs_volume has encrypted = true    4. IMDSv2 is mandatory on every EC2 instance (metadata_options.http_tokens =  "required")  If a setting is not there at all it counts as a FAIL (must be explicit).    IMDSv2 is checked here (not in ec2_instance) because it is a security rule,  while  ec2_instance is only a cost rule. In HCP this policy runs as ADVISORY - the  blocking  version of these checks is in compliance_all (HCP Free allowed only 1  hard-mandatory).
+
+Print messages:
+
+FAIL: aws_instance.app root disk is not encrypted
+FAIL: aws_ebs_volume.data EBS volume is not encrypted
+FAIL: aws_instance.app http_tokens is optional - IMDSv2 (required) is mandatory
+
+./encryption.sentinel:89:1 - Rule "main"
+  Value:
+    false
+
+./encryption.sentinel:85:1 - Rule "instance_disks_encrypted"
+  Value:
+    false
+
+## Policy 2: network (advisory)
+
+Result: false
+
+Description:
+  network.sentinel  ATUL00205200 - Network security policy (L00205200)    What it checks on every inbound (ingress) rule:    1. SSH (port 22) is never open to the whole internet (0.0.0.0/0 or ::/0)    2. nothing else is open to the whole internet, except HTTP 80 / HTTPS 443    Covers the 3 ways to write an inbound rule in the AWS provider:    aws_security_group (inline ingress), aws_security_group_rule,  aws_vpc_security_group_ingress_rule
+
+Print messages:
+
+FAIL: aws_security_group.app allows SSH (22) from the whole internet ["0.0.0.0/0"]
+FAIL: aws_security_group.app opens ports 22.000000 - 22.000000 protocol tcp to the whole internet - only 80/443 allowed
+
+./network.sentinel:150:1 - Rule "main"
+  Value:
+    false
+
+./network.sentinel:147:1 - Rule "no_public_ssh"
+  Value:
+    false
+
+## Policy 3: ec2_instance (advisory)
+
+Result: false
+
+Description:
+  ec2_instance.sentinel  ATUL00205200 - EC2 instance type policy (L00205200)    What it checks:    only approved instance types (small, free tier sizes)    Enforcement: ADVISORY. Instance type is mainly a cost rule, and HCP Terraform  Free  had no mandatory slots left for a 5th policy. A failure shows as a warning in  the run.  (IMDSv2 is checked in encryption.sentinel (advisory) and in compliance_all  (hard-mandatory).)
+
+Print messages:
+
+FAIL: aws_instance.app instance type t3.large is not approved: ["t2.micro" "t3.micro"]
+
+./ec2_instance.sentinel:37:1 - Rule "main"
+  Value:
+    false
+
+./ec2_instance.sentinel:35:1 - Rule "approved_instance_type"
+  Value:
+    false
+
+## Policy 4: compliance_all (hard-mandatory)
+
+Result: false
+
+Description:
+  compliance_all.sentinel  ATUL00205200 - combined BLOCKING policy (L00205200)    Why this file exists:    HCP Terraform Free only let my organisation have ONE hard-mandatory policy.    So every rule that must block a run is combined here:      A. Digital sovereignty  - approved region, data residency tags, no  cross-region copies      B. Supply chain         - approved providers/modules, exact version pins      C. Encryption + IMDSv2  - encrypted EBS, IMDSv2 required      D. Network              - no SSH from the internet, only 80/443 public    The separate policy files (sovereignty, supply_chain, encryption, network)  contain the    same checks and run as ADVISORY in HCP, so each area also shows its own  result.    Instance type (ec2_instance) is NOT here on purpose - it is a cost rule,  advisory only.
+
+Print messages:
+
+FAIL [sovereignty]: var.region is us-east-1 - approved regions: ["eu-west-1"]
+FAIL [sovereignty]: module.vpc.aws_route_table.private[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_route_table_association.private[1] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_s3_bucket.offshore_backup[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_s3_bucket_public_access_block.records is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_subnet.private[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_s3_bucket.records is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_default_network_acl.this[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_route_table.private[1] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_s3_bucket_server_side_encryption_configuration.records is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_subnet.private[1] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_default_security_group.this[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_vpc.this[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_instance.app is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_default_route_table.default[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_security_group.app is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: module.vpc.aws_route_table_association.private[0] is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_ebs_volume.data is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_volume_attachment.data is in region us-east-1 - outside Ireland
+FAIL [sovereignty]: aws_s3_bucket.offshore_backup[0] holds sensitive data but DataResidency is missing (must be IE)
+FAIL [encryption]: aws_instance.app root disk is not encrypted
+FAIL [encryption]: aws_ebs_volume.data EBS volume is not encrypted
+FAIL [imdsv2]: aws_instance.app http_tokens is optional - IMDSv2 (required) is mandatory
+FAIL [network]: aws_security_group.app allows SSH (22) from the whole internet ["0.0.0.0/0"]
+FAIL [network]: aws_security_group.app opens ports 22.000000 - 22.000000 protocol tcp to the whole internet - only 80/443 allowed
+
+./compliance_all.sentinel:376:1 - Rule "main"
+  Value:
+    false
+
+./compliance_all.sentinel:370:1 - Rule "sovereignty_ok"
+  Value:
+    false
+
+## Policy 5: supply_chain (advisory)
+
+Result: true
+
+Description:
+  supply_chain.sentinel  ATUL00205200 - IaC supply chain policy (L00205200)    What it checks (uses the Terraform CONFIG, not the plan):    1. providers only come from approved sources    2. root module providers are pinned to an approved exact version    3. modules only come from trusted sources (approved registry modules or  local ./ folders)    4. registry modules are pinned to an exact version (x.y.z) - no ranges like  ~> or >=    Note: Sentinel cannot read .terraform.lock.hcl, so provider checksums are  checked  in the GitHub Actions workflow instead (terraform init -lockfile=readonly).
+
+./supply_chain.sentinel:85:1 - Rule "main"
+  Value:
+    true
+
+./supply_chain.sentinel:83:1 - Rule "modules_trusted_and_pinned"
+  Value:
+    true
+
+./supply_chain.sentinel:82:1 - Rule "providers_approved_and_pinned"
+  Value:
+    true
+
+

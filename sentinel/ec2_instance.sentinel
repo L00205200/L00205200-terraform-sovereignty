@@ -1,0 +1,39 @@
+# ec2_instance.sentinel
+# ATUL00205200 - EC2 instance type policy (L00205200)
+#
+# What it checks:
+#   only approved instance types (small, free tier sizes)
+#
+# Enforcement: ADVISORY. Instance type is mainly a cost rule, and HCP Terraform Free
+# had no mandatory slots left for a 5th policy. A failure shows as a warning in the run.
+# (IMDSv2 is checked in encryption.sentinel (advisory) and in compliance_all (hard-mandatory).)
+
+import "tfplan/v2" as tfplan
+
+approved_instance_types = ["t2.micro", "t3.micro"]
+
+instances = filter tfplan.resource_changes as _, rc {
+	rc.type is "aws_instance" and
+		rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+check_instance_types = func() {
+	ok = true
+	for instances as address, rc {
+		itype = rc.change.after.instance_type else "unknown"
+		if itype not in approved_instance_types {
+			print("FAIL:", address, "instance type", itype, "is not approved:", approved_instance_types)
+			ok = false
+		}
+	}
+	return ok
+}
+
+instance_type_result = check_instance_types()
+
+approved_instance_type = rule { instance_type_result }
+
+main = rule {
+	approved_instance_type
+}

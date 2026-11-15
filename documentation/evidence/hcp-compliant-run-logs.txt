@@ -1,0 +1,117 @@
+================ Results for policy set: <empty policy set name> ===============
+
+Sentinel Result: true
+
+This result means that all Sentinel policies passed and the protected
+behavior is allowed.
+
+5 policies evaluated.
+
+## Policy 1: supply_chain (advisory)
+
+Result: true
+
+Description:
+  supply_chain.sentinel  ATUL00205200 - IaC supply chain policy (L00205200)    What it checks (uses the Terraform CONFIG, not the plan):    1. providers only come from approved sources    2. root module providers are pinned to an approved exact version    3. modules only come from trusted sources (approved registry modules or  local ./ folders)    4. registry modules are pinned to an exact version (x.y.z) - no ranges like  ~> or >=    Note: Sentinel cannot read .terraform.lock.hcl, so provider checksums are  checked  in the GitHub Actions workflow instead (terraform init -lockfile=readonly).
+
+./supply_chain.sentinel:85:1 - Rule "main"
+  Value:
+    true
+
+./supply_chain.sentinel:83:1 - Rule "modules_trusted_and_pinned"
+  Value:
+    true
+
+./supply_chain.sentinel:82:1 - Rule "providers_approved_and_pinned"
+  Value:
+    true
+
+## Policy 2: encryption (advisory)
+
+Result: true
+
+Description:
+  encryption.sentinel  ATUL00205200 - EBS encryption + IMDSv2 policy (L00205200)    What it checks:    1. every EC2 instance has a root_block_device with encrypted = true    2. any extra ebs_block_device on the instance is encrypted    3. every aws_ebs_volume has encrypted = true    4. IMDSv2 is mandatory on every EC2 instance (metadata_options.http_tokens =  "required")  If a setting is not there at all it counts as a FAIL (must be explicit).    IMDSv2 is checked here (not in ec2_instance) because it is a security rule,  while  ec2_instance is only a cost rule. In HCP this policy runs as ADVISORY - the  blocking  version of these checks is in compliance_all (HCP Free allowed only 1  hard-mandatory).
+
+./encryption.sentinel:89:1 - Rule "main"
+  Value:
+    true
+
+./encryption.sentinel:86:1 - Rule "ebs_volumes_encrypted"
+  Value:
+    true
+
+./encryption.sentinel:87:1 - Rule "imdsv2_required"
+  Value:
+    true
+
+./encryption.sentinel:85:1 - Rule "instance_disks_encrypted"
+  Value:
+    true
+
+## Policy 3: network (advisory)
+
+Result: true
+
+Description:
+  network.sentinel  ATUL00205200 - Network security policy (L00205200)    What it checks on every inbound (ingress) rule:    1. SSH (port 22) is never open to the whole internet (0.0.0.0/0 or ::/0)    2. nothing else is open to the whole internet, except HTTP 80 / HTTPS 443    Covers the 3 ways to write an inbound rule in the AWS provider:    aws_security_group (inline ingress), aws_security_group_rule,  aws_vpc_security_group_ingress_rule
+
+./network.sentinel:150:1 - Rule "main"
+  Value:
+    true
+
+./network.sentinel:147:1 - Rule "no_public_ssh"
+  Value:
+    true
+
+./network.sentinel:148:1 - Rule "only_web_ports_public"
+  Value:
+    true
+
+## Policy 4: ec2_instance (advisory)
+
+Result: true
+
+Description:
+  ec2_instance.sentinel  ATUL00205200 - EC2 instance type policy (L00205200)    What it checks:    only approved instance types (small, free tier sizes)    Enforcement: ADVISORY. Instance type is mainly a cost rule, and HCP Terraform  Free  had no mandatory slots left for a 5th policy. A failure shows as a warning in  the run.  (IMDSv2 is checked in encryption.sentinel, which is hard-mandatory.)
+
+./ec2_instance.sentinel:37:1 - Rule "main"
+  Value:
+    true
+
+./ec2_instance.sentinel:35:1 - Rule "approved_instance_type"
+  Value:
+    true
+
+## Policy 5: compliance_all (hard-mandatory)
+
+Result: true
+
+Description:
+  compliance_all.sentinel  ATUL00205200 - combined BLOCKING policy (L00205200)    Why this file exists:    HCP Terraform Free only let my organisation have ONE hard-mandatory policy.    So every rule that must block a run is combined here:      A. Digital sovereignty  - approved region, data residency tags, no  cross-region copies      B. Supply chain         - approved providers/modules, exact version pins      C. Encryption + IMDSv2  - encrypted EBS, IMDSv2 required      D. Network              - no SSH from the internet, only 80/443 public    The separate policy files (sovereignty, supply_chain, encryption, network)  contain the    same checks and run as ADVISORY in HCP, so each area also shows its own  result.    Instance type (ec2_instance) is NOT here on purpose - it is a cost rule,  advisory only.
+
+./compliance_all.sentinel:376:1 - Rule "main"
+  Value:
+    true
+
+./compliance_all.sentinel:372:1 - Rule "encryption_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:373:1 - Rule "imdsv2_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:374:1 - Rule "network_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:370:1 - Rule "sovereignty_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:371:1 - Rule "supply_chain_ok"
+  Value:
+    true
+
+

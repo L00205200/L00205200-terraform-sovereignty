@@ -1,0 +1,170 @@
+# mock-tfplan-pass.sentinel
+# Hand-made mock of a COMPLIANT plan (cut down version of the real plan for this project).
+# Real mocks can be downloaded from HCP Terraform: Run > Plan > "Download Sentinel mocks".
+
+terraform_version = "1.17.1"
+
+variables = {
+	"region":           {"name": "region", "value": "eu-west-1"},
+	"instance_type":    {"name": "instance_type", "value": "t3.micro"},
+	"imds_http_tokens": {"name": "imds_http_tokens", "value": "required"},
+	"ebs_encrypted":    {"name": "ebs_encrypted", "value": true},
+	"admin_cidr":       {"name": "admin_cidr", "value": "10.10.0.0/16"},
+}
+
+resource_changes = {
+	"aws_instance.app": {
+		"address":        "aws_instance.app",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "app",
+		"type":           "aws_instance",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"instance_type":               "t3.micro",
+				"region":                      "eu-west-1",
+				"associate_public_ip_address": false,
+				"metadata_options": [
+					{
+						"http_endpoint":               "enabled",
+						"http_tokens":                 "required",
+						"http_put_response_hop_limit": 1,
+					},
+				],
+				"root_block_device": [
+					{
+						"encrypted":   true,
+						"volume_size": 8,
+						"volume_type": "gp3",
+					},
+				],
+				"ebs_block_device": [],
+				"tags": {
+					"Name":               "atul00205200-app",
+					"DataClassification": "internal",
+				},
+			},
+			"after_unknown": {"id": true, "subnet_id": true},
+		},
+	},
+	"aws_ebs_volume.data": {
+		"address":        "aws_ebs_volume.data",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "data",
+		"type":           "aws_ebs_volume",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"availability_zone": "eu-west-1a",
+				"encrypted":         true,
+				"region":            "eu-west-1",
+				"size":              1,
+				"type":              "gp3",
+				"tags": {
+					"Name":               "atul00205200-data",
+					"DataClassification": "sensitive",
+					"DataResidency":      "IE",
+				},
+			},
+			"after_unknown": {"id": true},
+		},
+	},
+	"aws_s3_bucket.records": {
+		"address":        "aws_s3_bucket.records",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "records",
+		"type":           "aws_s3_bucket",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"bucket_prefix": "atul00205200-records-",
+				"force_destroy": true,
+				"region":        "eu-west-1",
+				"tags": {
+					"Name":               "atul00205200-records",
+					"DataClassification": "sensitive",
+					"DataResidency":      "IE",
+				},
+			},
+			"after_unknown": {"id": true, "bucket": true},
+		},
+	},
+	"aws_security_group.app": {
+		"address":        "aws_security_group.app",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "app",
+		"type":           "aws_security_group",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"region": "eu-west-1",
+				"ingress": [
+					{
+						"description":      "SSH from admin network only",
+						"from_port":        22,
+						"to_port":          22,
+						"protocol":         "tcp",
+						"cidr_blocks":      ["10.10.0.0/16"],
+						"ipv6_cidr_blocks": [],
+						"prefix_list_ids":  [],
+						"security_groups":  [],
+						"self":             false,
+					},
+					{
+						"description":      "HTTPS inside the VPC",
+						"from_port":        443,
+						"to_port":          443,
+						"protocol":         "tcp",
+						"cidr_blocks":      ["10.10.0.0/16"],
+						"ipv6_cidr_blocks": [],
+						"prefix_list_ids":  [],
+						"security_groups":  [],
+						"self":             false,
+					},
+				],
+				"tags": {"Name": "atul00205200-app-sg"},
+			},
+			"after_unknown": {"id": true, "vpc_id": true},
+		},
+	},
+	"module.vpc.aws_vpc.this[0]": {
+		"address":        "module.vpc.aws_vpc.this[0]",
+		"mode":           "managed",
+		"module_address": "module.vpc",
+		"name":           "this",
+		"type":           "aws_vpc",
+		"index":          0,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"cidr_block": "10.10.0.0/16",
+				"region":     "eu-west-1",
+				"tags":       {"Name": "atul00205200-vpc"},
+			},
+			"after_unknown": {"id": true},
+		},
+	},
+}

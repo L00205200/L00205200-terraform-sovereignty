@@ -1,0 +1,152 @@
+# network.sentinel
+# ATUL00205200 - Network security policy (L00205200)
+#
+# What it checks on every inbound (ingress) rule:
+#   1. SSH (port 22) is never open to the whole internet (0.0.0.0/0 or ::/0)
+#   2. nothing else is open to the whole internet, except HTTP 80 / HTTPS 443
+#
+# Covers the 3 ways to write an inbound rule in the AWS provider:
+#   aws_security_group (inline ingress), aws_security_group_rule, aws_vpc_security_group_ingress_rule
+
+import "tfplan/v2" as tfplan
+
+world_cidrs = ["0.0.0.0/0", "::/0"]
+public_ports_allowed = [80, 443]
+
+changes = filter tfplan.resource_changes as _, rc {
+	rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+# turn a value that might be null into a list
+as_list = func(v) {
+	if v is null {
+		return []
+	}
+	return v
+}
+
+# make one simple list of inbound rules from all 3 resource types
+collect_ingress_rules = func() {
+	rules = []
+	for changes as address, rc {
+		after = rc.change.after
+
+		if rc.type is "aws_security_group" {
+			for as_list(after.ingress else []) as r {
+				cidrs = []
+				for as_list(r.cidr_blocks else []) as c {
+					append(cidrs, c)
+				}
+				for as_list(r.ipv6_cidr_blocks else []) as c {
+					append(cidrs, c)
+				}
+				append(rules, {
+					"address":  address,
+					"protocol": r.protocol else "",
+					"from":     r.from_port else 0,
+					"to":       r.to_port else 65535,
+					"cidrs":    cidrs,
+				})
+			}
+		}
+
+		if rc.type is "aws_security_group_rule" and (after.type else "") is "ingress" {
+			cidrs = []
+			for as_list(after.cidr_blocks else []) as c {
+				append(cidrs, c)
+			}
+			for as_list(after.ipv6_cidr_blocks else []) as c {
+				append(cidrs, c)
+			}
+			append(rules, {
+				"address":  address,
+				"protocol": after.protocol else "",
+				"from":     after.from_port else 0,
+				"to":       after.to_port else 65535,
+				"cidrs":    cidrs,
+			})
+		}
+
+		if rc.type is "aws_vpc_security_group_ingress_rule" {
+			cidrs = []
+			v4 = after.cidr_ipv4 else null
+			v6 = after.cidr_ipv6 else null
+			if v4 is not null {
+				append(cidrs, v4)
+			}
+			if v6 is not null {
+				append(cidrs, v6)
+			}
+			append(rules, {
+				"address":  address,
+				"protocol": after.ip_protocol else "",
+				"from":     after.from_port else 0,
+				"to":       after.to_port else 65535,
+				"cidrs":    cidrs,
+			})
+		}
+	}
+	return rules
+}
+
+is_world_open = func(r) {
+	return any r.cidrs as c { c in world_cidrs }
+}
+
+all_protocols = func(r) {
+	return r.protocol in ["-1", "all"]
+}
+
+covers_port = func(r, port) {
+	if all_protocols(r) {
+		return true
+	}
+	from = r.from
+	to = r.to
+	if from is null {
+		from = 0
+	}
+	if to is null {
+		to = 65535
+	}
+	return from <= port and port <= to
+}
+
+ingress_rules = collect_ingress_rules()
+
+check_ssh = func() {
+	ok = true
+	for ingress_rules as r {
+		if is_world_open(r) and covers_port(r, 22) {
+			print("FAIL:", r.address, "allows SSH (22) from the whole internet", r.cidrs)
+			ok = false
+		}
+	}
+	return ok
+}
+
+check_other_public_ports = func() {
+	ok = true
+	for ingress_rules as r {
+		if not is_world_open(r) {
+			continue
+		}
+		single_web_port = (not all_protocols(r)) and r.from is r.to and r.from in public_ports_allowed
+		if not single_web_port {
+			print("FAIL:", r.address, "opens ports", r.from, "-", r.to, "protocol", r.protocol, "to the whole internet - only 80/443 allowed")
+			ok = false
+		}
+	}
+	return ok
+}
+
+ssh_result = check_ssh()
+public_ports_result = check_other_public_ports()
+
+no_public_ssh = rule { ssh_result }
+only_web_ports_public = rule { public_ports_result }
+
+main = rule {
+	no_public_ssh and only_web_ports_public
+}

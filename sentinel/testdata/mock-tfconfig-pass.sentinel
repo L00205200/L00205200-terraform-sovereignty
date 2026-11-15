@@ -1,0 +1,43 @@
+# mock-tfconfig-pass.sentinel
+# COMPLIANT config: AWS provider from hashicorp pinned to 6.63.0,
+# VPC module from terraform-aws-modules pinned to 6.6.1.
+# The child module's own provider requirement (">= 6.0") is allowed because
+# the root module and the lock file decide the real version.
+
+providers = {
+	"aws": {
+		"alias":               "",
+		"config":              {"region": {"references": ["var.region"]}},
+		"full_name":           "registry.terraform.io/hashicorp/aws",
+		"module_address":      "",
+		"name":                "aws",
+		"provider_config_key": "aws",
+		"version_constraint":  "6.63.0",
+	},
+	"module.vpc:aws": {
+		"alias":               "",
+		"config":              {},
+		"full_name":           "registry.terraform.io/hashicorp/aws",
+		"module_address":      "module.vpc",
+		"name":                "aws",
+		"provider_config_key": "module.vpc:aws",
+		"version_constraint":  ">= 6.0",
+	},
+}
+
+module_calls = {
+	"vpc": {
+		"config":             {},
+		"count":              {},
+		"depends_on":         [],
+		"for_each":           {},
+		"module_address":     "",
+		"name":               "vpc",
+		"source":             "terraform-aws-modules/vpc/aws",
+		"version_constraint": "6.6.1",
+	},
+}
+
+resources = {}
+variables = {}
+outputs = {}

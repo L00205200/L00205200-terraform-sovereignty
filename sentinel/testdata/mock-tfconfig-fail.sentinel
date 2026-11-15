@@ -1,0 +1,54 @@
+# mock-tfconfig-fail.sentinel
+# NON-COMPLIANT config:
+#   - AWS provider uses a range (~> 6.0) instead of the approved exact version
+#   - an extra provider from an unknown namespace
+#   - a module straight from a random GitHub repo with no version
+#   - a registry module that is not on the approved list and uses a range
+
+providers = {
+	"aws": {
+		"alias":               "",
+		"config":              {},
+		"full_name":           "registry.terraform.io/hashicorp/aws",
+		"module_address":      "",
+		"name":                "aws",
+		"provider_config_key": "aws",
+		"version_constraint":  "~> 6.0",
+	},
+	"awsplus": {
+		"alias":               "",
+		"config":              {},
+		"full_name":           "registry.terraform.io/randomdev/awsplus",
+		"module_address":      "",
+		"name":                "awsplus",
+		"provider_config_key": "awsplus",
+		"version_constraint":  "1.0.0",
+	},
+}
+
+module_calls = {
+	"vpc": {
+		"config":             {},
+		"count":              {},
+		"depends_on":         [],
+		"for_each":           {},
+		"module_address":     "",
+		"name":               "vpc",
+		"source":             "git::https://github.com/random-user/terraform-vpc.git",
+		"version_constraint": "",
+	},
+	"server": {
+		"config":             {},
+		"count":              {},
+		"depends_on":         [],
+		"for_each":           {},
+		"module_address":     "",
+		"name":               "server",
+		"source":             "terraform-aws-modules/ec2-instance/aws",
+		"version_constraint": ">= 5.0",
+	},
+}
+
+resources = {}
+variables = {}
+outputs = {}

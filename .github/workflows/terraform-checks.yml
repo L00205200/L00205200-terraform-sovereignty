@@ -1,0 +1,78 @@
+# terraform-checks.yml
+# Runs on every push / pull request.
+#   Job 1: Terraform format, lock file and validate checks
+#   Job 2: Sentinel policy tests against the pass/fail mocks
+# This covers supply chain checks that Sentinel cannot do itself (lock file / checksums).
+
+name: terraform-checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SENTINEL_VERSION: "0.28.0"
+
+jobs:
+  terraform:
+    name: Terraform checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.17.0"
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      - name: Lock file must be committed
+        run: |
+          if [ ! -f .terraform.lock.hcl ]; then
+            echo "FAIL: .terraform.lock.hcl is missing - run terraform init and commit it"
+            exit 1
+          fi
+          echo "Lock file found:"
+          cat .terraform.lock.hcl
+
+      # -lockfile=readonly = fail if the downloaded provider does not match
+      # the checksums in .terraform.lock.hcl (provider integrity check)
+      - name: Init (no backend, read-only lock file)
+        run: terraform init -backend=false -lockfile=readonly
+
+      - name: Validate
+        run: terraform validate
+
+  sentinel:
+    name: Sentinel policy tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sentinel
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Sentinel CLI (pinned version + checksum check)
+        working-directory: ${{ runner.temp }}
+        run: |
+          base="https://releases.hashicorp.com/sentinel/${SENTINEL_VERSION}"
+          curl -sSLO "${base}/sentinel_${SENTINEL_VERSION}_linux_amd64.zip"
+          curl -sSLO "${base}/sentinel_${SENTINEL_VERSION}_SHA256SUMS"
+          sha256sum --check --ignore-missing "sentinel_${SENTINEL_VERSION}_SHA256SUMS"
+          unzip -o "sentinel_${SENTINEL_VERSION}_linux_amd64.zip"
+          sudo mv sentinel /usr/local/bin/
+          sentinel version
+
+      - name: Run Sentinel tests
+        run: sentinel test -verbose

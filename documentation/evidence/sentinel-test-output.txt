@@ -1,0 +1,224 @@
+PASS - supply_chain.sentinel
+  PASS - test\supply_chain\fail.hcl
+
+
+    logs:
+      FAIL: provider aws version is '~> 6.0' - approved: ["6.63.0"]
+      FAIL: provider awsplus comes from registry.terraform.io/randomdev/awsplus - not an approved source
+      FAIL: module vpc source git::https://github.com/random-user/terraform-vpc.git is not a trusted module source
+      FAIL: module server source terraform-aws-modules/ec2-instance/aws is not a trusted module source
+    trace:
+      supply_chain.sentinel:85:1 - Rule "main"
+        Value:
+          false
+
+      supply_chain.sentinel:82:1 - Rule "providers_approved_and_pinned"
+        Value:
+          false
+  PASS - test\supply_chain\pass.hcl
+
+    trace:
+      supply_chain.sentinel:85:1 - Rule "main"
+        Value:
+          true
+
+      supply_chain.sentinel:83:1 - Rule "modules_trusted_and_pinned"
+        Value:
+          true
+
+      supply_chain.sentinel:82:1 - Rule "providers_approved_and_pinned"
+        Value:
+          true
+PASS - encryption.sentinel
+PASS - sovereignty.sentinel
+  PASS - test\sovereignty\fail.hcl
+
+
+    logs:
+      FAIL: var.region is us-east-1 - approved regions: ["eu-west-1"]
+      FAIL: aws_instance.app is in region us-east-1 - outside Ireland
+      FAIL: aws_ebs_volume.data is in region us-east-1 - outside Ireland
+      FAIL: aws_s3_bucket.offshore_backup[0] is in region us-east-1 - outside Ireland
+      FAIL: aws_s3_bucket_replication_configuration.records is in region us-east-1 - outside Ireland
+      FAIL: aws_security_group.app is in region us-east-1 - outside Ireland
+      FAIL: aws_instance.app stores data but DataClassification is missing
+      FAIL: aws_ebs_volume.data holds sensitive data but DataResidency is missing (must be IE)
+      FAIL: aws_s3_bucket.offshore_backup[0] holds sensitive data but DataResidency is missing (must be IE)
+      FAIL: aws_s3_bucket_replication_configuration.records copies data to another location - aws_s3_bucket_replication_configuration is not allowed
+    trace:
+      sovereignty.sentinel:116:1 - Rule "main"
+        Value:
+          false
+
+      sovereignty.sentinel:111:1 - Rule "region_variable_is_approved"
+        Value:
+          false
+  PASS - test\sovereignty\pass.hcl
+
+    trace:
+      sovereignty.sentinel:116:1 - Rule "main"
+        Value:
+          true
+
+      sovereignty.sentinel:112:1 - Rule "all_resources_in_ireland"
+        Value:
+          true
+
+      sovereignty.sentinel:113:1 - Rule "data_residency_tags_ok"
+        Value:
+          true
+
+      sovereignty.sentinel:114:1 - Rule "no_cross_region_copies"
+        Value:
+          true
+
+      sovereignty.sentinel:111:1 - Rule "region_variable_is_approved"
+        Value:
+          true
+PASS - ec2_instance.sentinel
+  PASS - test\ec2_instance\fail.hcl
+
+
+    logs:
+      FAIL: aws_instance.app instance type t3.large is not approved: ["t2.micro" "t3.micro"]
+    trace:
+      ec2_instance.sentinel:37:1 - Rule "main"
+        Value:
+          false
+
+      ec2_instance.sentinel:35:1 - Rule "approved_instance_type"
+        Value:
+          false
+  PASS - test\ec2_instance\pass.hcl
+
+    trace:
+      ec2_instance.sentinel:37:1 - Rule "main"
+        Value:
+          true
+
+      ec2_instance.sentinel:35:1 - Rule "approved_instance_type"
+        Value:
+          true
+PASS - network.sentinel
+  PASS - test\network\fail.hcl
+
+
+    logs:
+      FAIL: aws_security_group.app allows SSH (22) from the whole internet ["0.0.0.0/0"]
+      FAIL: aws_security_group.app opens ports 22 - 22 protocol tcp to the whole internet - only 80/443 allowed
+      FAIL: aws_security_group.app opens ports 8080 - 8080 protocol tcp to the whole internet - only 80/443 allowed
+    trace:
+      network.sentinel:150:1 - Rule "main"
+        Value:
+          false
+
+      network.sentinel:147:1 - Rule "no_public_ssh"
+        Value:
+          false
+  PASS - test\network\pass.hcl
+
+    trace:
+      network.sentinel:150:1 - Rule "main"
+        Value:
+          true
+
+      network.sentinel:147:1 - Rule "no_public_ssh"
+        Value:
+          true
+
+      network.sentinel:148:1 - Rule "only_web_ports_public"
+        Value:
+          true
+  PASS - test\encryption\fail.hcl
+
+
+    logs:
+      FAIL: aws_instance.app root disk is not encrypted
+      FAIL: aws_ebs_volume.data EBS volume is not encrypted
+      FAIL: aws_instance.app http_tokens is optional - IMDSv2 (required) is mandatory
+    trace:
+      encryption.sentinel:89:1 - Rule "main"
+        Value:
+          false
+
+      encryption.sentinel:85:1 - Rule "instance_disks_encrypted"
+        Value:
+          false
+  PASS - test\encryption\pass.hcl
+
+    trace:
+      encryption.sentinel:89:1 - Rule "main"
+        Value:
+          true
+
+      encryption.sentinel:86:1 - Rule "ebs_volumes_encrypted"
+        Value:
+          true
+
+      encryption.sentinel:87:1 - Rule "imdsv2_required"
+        Value:
+          true
+
+      encryption.sentinel:85:1 - Rule "instance_disks_encrypted"
+        Value:
+          true
+PASS - compliance_all.sentinel
+  PASS - test\compliance_all\fail.hcl
+
+
+    logs:
+      FAIL [sovereignty]: var.region is us-east-1 - approved regions: ["eu-west-1"]
+      FAIL [sovereignty]: aws_instance.app is in region us-east-1 - outside Ireland
+      FAIL [sovereignty]: aws_ebs_volume.data is in region us-east-1 - outside Ireland
+      FAIL [sovereignty]: aws_s3_bucket.offshore_backup[0] is in region us-east-1 - outside Ireland
+      FAIL [sovereignty]: aws_s3_bucket_replication_configuration.records is in region us-east-1 - outside Ireland
+      FAIL [sovereignty]: aws_security_group.app is in region us-east-1 - outside Ireland
+      FAIL [sovereignty]: aws_instance.app stores data but DataClassification is missing
+      FAIL [sovereignty]: aws_ebs_volume.data holds sensitive data but DataResidency is missing (must be IE)
+      FAIL [sovereignty]: aws_s3_bucket.offshore_backup[0] holds sensitive data but DataResidency is missing (must be IE)
+      FAIL [sovereignty]: aws_s3_bucket_replication_configuration.records copies data to another location - aws_s3_bucket_replication_configuration is not allowed
+      FAIL [supply_chain]: provider aws version is '~> 6.0' - approved: ["6.63.0"]
+      FAIL [supply_chain]: provider awsplus comes from registry.terraform.io/randomdev/awsplus - not an approved source
+      FAIL [supply_chain]: module vpc source git::https://github.com/random-user/terraform-vpc.git is not a trusted module source
+      FAIL [supply_chain]: module server source terraform-aws-modules/ec2-instance/aws is not a trusted module source
+      FAIL [encryption]: aws_instance.app root disk is not encrypted
+      FAIL [encryption]: aws_ebs_volume.data EBS volume is not encrypted
+      FAIL [imdsv2]: aws_instance.app http_tokens is optional - IMDSv2 (required) is mandatory
+      FAIL [network]: aws_security_group.app allows SSH (22) from the whole internet ["0.0.0.0/0"]
+      FAIL [network]: aws_security_group.app opens ports 22 - 22 protocol tcp to the whole internet - only 80/443 allowed
+      FAIL [network]: aws_security_group.app opens ports 8080 - 8080 protocol tcp to the whole internet - only 80/443 allowed
+    trace:
+      compliance_all.sentinel:376:1 - Rule "main"
+        Value:
+          false
+
+      compliance_all.sentinel:370:1 - Rule "sovereignty_ok"
+        Value:
+          false
+  PASS - test\compliance_all\pass.hcl
+
+    trace:
+      compliance_all.sentinel:376:1 - Rule "main"
+        Value:
+          true
+
+      compliance_all.sentinel:372:1 - Rule "encryption_ok"
+        Value:
+          true
+
+      compliance_all.sentinel:373:1 - Rule "imdsv2_ok"
+        Value:
+          true
+
+      compliance_all.sentinel:374:1 - Rule "network_ok"
+        Value:
+          true
+
+      compliance_all.sentinel:370:1 - Rule "sovereignty_ok"
+        Value:
+          true
+
+      compliance_all.sentinel:371:1 - Rule "supply_chain_ok"
+        Value:
+          true
+6 tests completed in 10.4759ms

@@ -1,0 +1,121 @@
+# sovereignty.sentinel
+# ATUL00205200 - Digital sovereignty policy for Ireland (L00205200)
+#
+# What it checks:
+#   1. var.region is an approved region (eu-west-1 = AWS Dublin)
+#   2. every single resource is in an approved region
+#      (AWS provider v6 allows "region" per resource, so checking the provider is not enough)
+#   3. every resource that stores data has a DataClassification tag
+#   4. sensitive data also has DataResidency = IE
+#   5. no resource types that copy data to another region (replication / snapshot copy etc.)
+
+import "tfplan/v2" as tfplan
+
+approved_regions = ["eu-west-1"]
+
+data_store_types = [
+	"aws_instance",
+	"aws_ebs_volume",
+	"aws_s3_bucket",
+	"aws_db_instance",
+	"aws_rds_cluster",
+	"aws_dynamodb_table",
+	"aws_efs_file_system",
+]
+
+allowed_classifications = ["public", "internal", "sensitive"]
+
+# these resources move a copy of the data somewhere else
+blocked_copy_types = [
+	"aws_s3_bucket_replication_configuration",
+	"aws_ebs_snapshot_copy",
+	"aws_ami_copy",
+	"aws_dynamodb_table_replica",
+	"aws_db_instance_automated_backups_replication",
+]
+
+# only resources that are being created or updated
+changes = filter tfplan.resource_changes as _, rc {
+	rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+get_tags = func(rc) {
+	tags = rc.change.after.tags else {}
+	if tags is null {
+		tags = {}
+	}
+	return tags
+}
+
+check_region_variable = func() {
+	region = tfplan.variables["region"].value else "not set"
+	if region not in approved_regions {
+		print("FAIL: var.region is", region, "- approved regions:", approved_regions)
+		return false
+	}
+	return true
+}
+
+check_resource_regions = func() {
+	ok = true
+	for changes as address, rc {
+		region = rc.change.after.region else null
+		if region is not null and region not in approved_regions {
+			print("FAIL:", address, "is in region", region, "- outside Ireland")
+			ok = false
+		}
+	}
+	return ok
+}
+
+check_data_residency = func() {
+	ok = true
+	for changes as address, rc {
+		if rc.type not in data_store_types {
+			continue
+		}
+		tags = get_tags(rc)
+		classification = tags["DataClassification"] else "missing"
+		if classification not in allowed_classifications {
+			print("FAIL:", address, "stores data but DataClassification is", classification)
+			ok = false
+		} else if classification is "sensitive" {
+			residency = tags["DataResidency"] else "missing"
+			if residency is not "IE" {
+				print("FAIL:", address, "holds sensitive data but DataResidency is", residency, "(must be IE)")
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
+check_no_data_copies = func() {
+	ok = true
+	for changes as address, rc {
+		if rc.type in blocked_copy_types {
+			print("FAIL:", address, "copies data to another location -", rc.type, "is not allowed")
+			ok = false
+		}
+	}
+	return ok
+}
+
+# run every check first so all FAIL messages are printed
+region_variable_result = check_region_variable()
+resource_region_result = check_resource_regions()
+data_residency_result = check_data_residency()
+data_copy_result = check_no_data_copies()
+
+region_variable_is_approved = rule { region_variable_result }
+all_resources_in_ireland = rule { resource_region_result }
+data_residency_tags_ok = rule { data_residency_result }
+no_cross_region_copies = rule { data_copy_result }
+
+main = rule {
+	region_variable_is_approved and
+	all_resources_in_ireland and
+	data_residency_tags_ok and
+	no_cross_region_copies
+}

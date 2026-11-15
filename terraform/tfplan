@@ -1,0 +1,717 @@
+Running plan in HCP Terraform. Output will stream here. Pressing Ctrl-C
+will stop streaming the logs, but will not stop the plan running remotely.
+
+Preparing the remote plan...
+
+To view this run in a browser, visit:
+https://app.terraform.io/app/ATUL00205200/sovereignty-ie/runs/run-L45jcZZZL9C4dfKm
+
+Waiting for the plan to start...
+
+Terraform v1.17.1
+on linux_amd64
+
+Initializing plugins and modules...
+data.aws_ssm_parameter.al2023: Refreshing...
+data.aws_ssm_parameter.al2023: Refresh complete after 1s [id=/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_ebs_volume.data will be created
+  + resource "aws_ebs_volume" "data" {
+      + arn               = (known after apply)
+      + availability_zone = "eu-west-1a"
+      + create_time       = (known after apply)
+      + encrypted         = true
+      + final_snapshot    = false
+      + id                = (known after apply)
+      + iops              = (known after apply)
+      + kms_key_id        = (known after apply)
+      + region            = "eu-west-1"
+      + size              = 1
+      + snapshot_id       = (known after apply)
+      + tags              = {
+          + "DataClassification" = "sensitive"
+          + "DataResidency"      = "IE"
+          + "Name"               = "atul00205200-data"
+        }
+      + tags_all          = {
+          + "Compliance"         = "IE-digital-sovereignty"
+          + "DataClassification" = "sensitive"
+          + "DataResidency"      = "IE"
+          + "ManagedBy"          = "Terraform"
+          + "Name"               = "atul00205200-data"
+          + "Org"                = "ATUL00205200"
+          + "Owner"              = "L00205200"
+          + "Project"            = "terraform-sovereignty"
+        }
+      + throughput        = (known after apply)
+      + type              = "gp3"
+    }
+
+  # aws_instance.app will be created
+  + resource "aws_instance" "app" {
+      + ami                                  = "ami-0f00e1cf9df80b6ac"
+      + arn                                  = (known after apply)
+      + associate_public_ip_address          = false
+      + availability_zone                    = (known after apply)
+      + disable_api_stop                     = (known after apply)
+      + disable_api_termination              = (known after apply)
+      + ebs_optimized                        = (known after apply)
+      + enable_primary_ipv6                  = (known after apply)
+      + force_destroy                        = false
+      + get_password_data                    = false
+      + host_id                              = (known after apply)
+      + host_resource_group_arn              = (known after apply)
+      + iam_instance_profile                 = (known after apply)
+      + id                                   = (known after apply)
+      + instance_initiated_shutdown_behavior = (known after apply)
+      + instance_lifecycle                   = (known after apply)
+      + instance_state                       = (known after apply)
+      + instance_type                        = "t3.micro"
+      + ipv6_address_count                   = (known after apply)
+      + ipv6_addresses                       = (known after apply)
+      + key_name                             = (known after apply)
+      + monitoring                           = (known after apply)
+      + outpost_arn                          = (known after apply)
+      + password_data                        = (known after apply)
+      + placement_group                      = (known after apply)
+      + placement_group_id                   = (known after apply)
+      + placement_partition_number           = (known after apply)
+      + primary_network_interface_id         = (known after apply)
+      + private_dns                          = (known after apply)
+      + private_ip                           = (known after apply)
+      + public_dns                           = (known after apply)
+      + public_ip                            = (known after apply)
+      + region                               = "eu-west-1"
+      + secondary_private_ips                = (known after apply)
+      + security_groups                      = (known after apply)
+      + source_dest_check                    = true
+      + spot_instance_request_id             = (known after apply)
+      + subnet_id                            = (known after apply)
+      + tags                                 = {
+          + "DataClassification" = "internal"
+          + "Name"               = "atul00205200-app"
+        }
+      + tags_all                             = {
+          + "Compliance"         = "IE-digital-sovereignty"
+          + "DataClassification" = "internal"
+          + "ManagedBy"          = "Terraform"
+          + "Name"               = "atul00205200-app"
+          + "Org"                = "ATUL00205200"
+          + "Owner"              = "L00205200"
+          + "Project"            = "terraform-sovereignty"
+        }
+      + tenancy                              = (known after apply)
+      + user_data_base64                     = (known after apply)
+      + user_data_replace_on_change          = false
+      + vpc_security_group_ids               = (known after apply)
+
+      + capacity_reservation_specification (known after apply)
+
+      + cpu_options (known after apply)
+
+      + ebs_block_device (known after apply)
+
+      + enclave_options (known after apply)
+
+      + ephemeral_block_device (known after apply)
+
+      + instance_market_options (known after apply)
+
+      + maintenance_options (known after apply)
+
+      + metadata_options {
+          + http_endpoint               = "enabled"
+          + http_protocol_ipv6          = "disabled"
+          + http_put_response_hop_limit = 1
+          + http_tokens                 = "required"
+          + instance_metadata_tags      = (known after apply)
+        }
+
+      + network_interface (known after apply)
+
+      + primary_network_interface (known after apply)
+
+      + private_dns_name_options (known after apply)
+
+      + root_block_device {
+          + delete_on_termination = true
+          + device_name           = (known after apply)
+          + encrypted             = true
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + tags_all              = (known after apply)
+          + throughput            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = 8
+          + volume_type           = "gp3"
+        }
+
+      + secondary_network_interface (known after apply)
+    }
+
+  # aws_s3_bucket.records will be created
+  + resource "aws_s3_bucket" "records" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = (known after apply)
+      + bucket_domain_name          = (known after apply)
+      + bucket_namespace            = (known after apply)
+      + bucket_prefix               = "atul00205200-records-"
+      + bucket_region               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = true
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = "eu-west-1"
+      + request_payer               = (known after apply)
+      + tags                        = {
+          + "DataClassification" = "sensitive"
+          + "DataResidency"      = "IE"
+          + "Name"               = "atul00205200-records"
+        }
+      + tags_all                    = {
+          + "Compliance"         = "IE-digital-sovereignty"
+          + "DataClassification" = "sensitive"
+          + "DataResidency"      = "IE"
+          + "ManagedBy"          = "Terraform"
+          + "Name"               = "atul00205200-records"
+          + "Org"                = "ATUL00205200"
+          + "Owner"              = "L00205200"
+          + "Project"            = "terraform-sovereignty"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
+
+      + cors_rule (known after apply)
+
+      + grant (known after apply)
+
+      + lifecycle_rule (known after apply)
+
+      + logging (known after apply)
+
+      + object_lock_configuration (known after apply)
+
+      + replication_configuration (known after apply)
+
+      + server_side_encryption_configuration (known after apply)
+
+      + versioning (known after apply)
+
+      + website (known after apply)
+    }
+
+  # aws_s3_bucket_public_access_block.records will be created
+  + resource "aws_s3_bucket_public_access_block" "records" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + region                  = "eu-west-1"
+      + restrict_public_buckets = true
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.records will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "records" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "eu-west-1"
+
+      + rule {
+          + blocked_encryption_types = (known after apply)
+          + bucket_key_enabled       = (known after apply)
+
+          + apply_server_side_encryption_by_default {
+              + kms_master_key_id = (known after apply)
+              + sse_algorithm     = "AES256"
+            }
+        }
+    }
+
+  # aws_security_group.app will be created
+  + resource "aws_security_group" "app" {
+      + arn                    = (known after apply)
+      + description            = "App server - SSH only from the admin network"
+      + egress                 = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = "HTTPS out"
+              + from_port        = 443
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 443
+            },
+        ]
+      + id                     = (known after apply)
+      + ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "10.10.0.0/16",
+                ]
+              + description      = "HTTPS inside the VPC"
+              + from_port        = 443
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 443
+            },
+          + {
+              + cidr_blocks      = [
+                  + "10.10.0.0/16",
+                ]
+              + description      = "SSH from admin network only"
+              + from_port        = 22
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 22
+            },
+        ]
+      + name                   = (known after apply)
+      + name_prefix            = "atul00205200-app-"
+      + owner_id               = (known after apply)
+      + region                 = "eu-west-1"
+      + revoke_rules_on_delete = false
+      + tags                   = {
+          + "Name" = "atul00205200-app-sg"
+        }
+      + tags_all               = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-app-sg"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id                 = (known after apply)
+    }
+
+  # aws_volume_attachment.data will be created
+  + resource "aws_volume_attachment" "data" {
+      + device_name = "/dev/sdf"
+      + id          = (known after apply)
+      + instance_id = (known after apply)
+      + region      = "eu-west-1"
+      + volume_id   = (known after apply)
+    }
+
+  # module.vpc.aws_default_network_acl.this[0] will be created
+  + resource "aws_default_network_acl" "this" {
+      + arn                    = (known after apply)
+      + default_network_acl_id = (known after apply)
+      + id                     = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "eu-west-1"
+      + tags                   = {
+          + "Name" = "atul00205200-vpc-default"
+        }
+      + tags_all               = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-default"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id                 = (known after apply)
+
+      + egress {
+          + action          = "allow"
+          + from_port       = 0
+          + ipv6_cidr_block = "::/0"
+          + protocol        = "-1"
+          + rule_no         = 101
+          + to_port         = 0
+            # (1 unchanged attribute hidden)
+        }
+      + egress {
+          + action          = "allow"
+          + cidr_block      = "0.0.0.0/0"
+          + from_port       = 0
+          + protocol        = "-1"
+          + rule_no         = 100
+          + to_port         = 0
+            # (1 unchanged attribute hidden)
+        }
+
+      + ingress {
+          + action          = "allow"
+          + from_port       = 0
+          + ipv6_cidr_block = "::/0"
+          + protocol        = "-1"
+          + rule_no         = 101
+          + to_port         = 0
+            # (1 unchanged attribute hidden)
+        }
+      + ingress {
+          + action          = "allow"
+          + cidr_block      = "0.0.0.0/0"
+          + from_port       = 0
+          + protocol        = "-1"
+          + rule_no         = 100
+          + to_port         = 0
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # module.vpc.aws_default_route_table.default[0] will be created
+  + resource "aws_default_route_table" "default" {
+      + arn                    = (known after apply)
+      + default_route_table_id = (known after apply)
+      + id                     = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "eu-west-1"
+      + route                  = (known after apply)
+      + tags                   = {
+          + "Name" = "atul00205200-vpc-default"
+        }
+      + tags_all               = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-default"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id                 = (known after apply)
+
+      + timeouts {
+          + create = "5m"
+          + update = "5m"
+        }
+    }
+
+  # module.vpc.aws_default_security_group.this[0] will be created
+  + resource "aws_default_security_group" "this" {
+      + arn                    = (known after apply)
+      + description            = (known after apply)
+      + egress                 = (known after apply)
+      + id                     = (known after apply)
+      + ingress                = (known after apply)
+      + name                   = (known after apply)
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "eu-west-1"
+      + revoke_rules_on_delete = false
+      + tags                   = {
+          + "Name" = "atul00205200-vpc-default"
+        }
+      + tags_all               = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-default"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id                 = (known after apply)
+    }
+
+  # module.vpc.aws_route_table.private[0] will be created
+  + resource "aws_route_table" "private" {
+      + arn              = (known after apply)
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + region           = "eu-west-1"
+      + route            = (known after apply)
+      + tags             = {
+          + "Name" = "atul00205200-vpc-private-eu-west-1a"
+        }
+      + tags_all         = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-private-eu-west-1a"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id           = (known after apply)
+    }
+
+  # module.vpc.aws_route_table.private[1] will be created
+  + resource "aws_route_table" "private" {
+      + arn              = (known after apply)
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + region           = "eu-west-1"
+      + route            = (known after apply)
+      + tags             = {
+          + "Name" = "atul00205200-vpc-private-eu-west-1b"
+        }
+      + tags_all         = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-private-eu-west-1b"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id           = (known after apply)
+    }
+
+  # module.vpc.aws_route_table_association.private[0] will be created
+  + resource "aws_route_table_association" "private" {
+      + id             = (known after apply)
+      + region         = "eu-west-1"
+      + route_table_id = (known after apply)
+      + subnet_id      = (known after apply)
+    }
+
+  # module.vpc.aws_route_table_association.private[1] will be created
+  + resource "aws_route_table_association" "private" {
+      + id             = (known after apply)
+      + region         = "eu-west-1"
+      + route_table_id = (known after apply)
+      + subnet_id      = (known after apply)
+    }
+
+  # module.vpc.aws_subnet.private[0] will be created
+  + resource "aws_subnet" "private" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "eu-west-1a"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.10.1.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = false
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "eu-west-1"
+      + tags                                           = {
+          + "Name" = "atul00205200-vpc-private-eu-west-1a"
+        }
+      + tags_all                                       = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-private-eu-west-1a"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id                                         = (known after apply)
+    }
+
+  # module.vpc.aws_subnet.private[1] will be created
+  + resource "aws_subnet" "private" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "eu-west-1b"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.10.2.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = false
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "eu-west-1"
+      + tags                                           = {
+          + "Name" = "atul00205200-vpc-private-eu-west-1b"
+        }
+      + tags_all                                       = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc-private-eu-west-1b"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+      + vpc_id                                         = (known after apply)
+    }
+
+  # module.vpc.aws_vpc.this[0] will be created
+  + resource "aws_vpc" "this" {
+      + arn                                  = (known after apply)
+      + cidr_block                           = "10.10.0.0/16"
+      + default_network_acl_id               = (known after apply)
+      + default_route_table_id               = (known after apply)
+      + default_security_group_id            = (known after apply)
+      + dhcp_options_id                      = (known after apply)
+      + enable_dns_hostnames                 = true
+      + enable_dns_support                   = true
+      + enable_network_address_usage_metrics = (known after apply)
+      + id                                   = (known after apply)
+      + instance_tenancy                     = "default"
+      + ipv6_association_id                  = (known after apply)
+      + ipv6_cidr_block                      = (known after apply)
+      + ipv6_cidr_block_network_border_group = (known after apply)
+      + main_route_table_id                  = (known after apply)
+      + owner_id                             = (known after apply)
+      + region                               = "eu-west-1"
+      + tags                                 = {
+          + "Name" = "atul00205200-vpc"
+        }
+      + tags_all                             = {
+          + "Compliance" = "IE-digital-sovereignty"
+          + "ManagedBy"  = "Terraform"
+          + "Name"       = "atul00205200-vpc"
+          + "Org"        = "ATUL00205200"
+          + "Owner"      = "L00205200"
+          + "Project"    = "terraform-sovereignty"
+        }
+    }
+
+Plan: 17 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + instance_id    = (known after apply)
+  + records_bucket = (known after apply)
+  + region         = "eu-west-1"
+
+------------------------------------------------------------------------
+
+Organization Policy Check:
+
+================ Results for policy set: <empty policy set name> ===============
+
+Sentinel Result: true
+
+This result means that all Sentinel policies passed and the protected
+behavior is allowed.
+
+5 policies evaluated.
+
+## Policy 1: supply_chain (advisory)
+
+Result: true
+
+Description:
+  supply_chain.sentinel  ATUL00205200 - IaC supply chain policy (L00205200)    What it checks (uses the Terraform CONFIG, not the plan):    1. providers only come from approved sources    2. root module providers are pinned to an approved exact version    3. modules only come from trusted sources (approved registry modules or  local ./ folders)    4. registry modules are pinned to an exact version (x.y.z) - no ranges like  ~> or >=    Note: Sentinel cannot read .terraform.lock.hcl, so provider checksums are  checked  in the GitHub Actions workflow instead (terraform init -lockfile=readonly).
+
+./supply_chain.sentinel:85:1 - Rule "main"
+  Value:
+    true
+
+./supply_chain.sentinel:83:1 - Rule "modules_trusted_and_pinned"
+  Value:
+    true
+
+./supply_chain.sentinel:82:1 - Rule "providers_approved_and_pinned"
+  Value:
+    true
+
+## Policy 2: encryption (advisory)
+
+Result: true
+
+Description:
+  encryption.sentinel  ATUL00205200 - EBS encryption + IMDSv2 policy (L00205200)    What it checks:    1. every EC2 instance has a root_block_device with encrypted = true    2. any extra ebs_block_device on the instance is encrypted    3. every aws_ebs_volume has encrypted = true    4. IMDSv2 is mandatory on every EC2 instance (metadata_options.http_tokens =  "required")  If a setting is not there at all it counts as a FAIL (must be explicit).    IMDSv2 is checked here (not in ec2_instance) because it is a security rule,  while  ec2_instance is only a cost rule. In HCP this policy runs as ADVISORY - the  blocking  version of these checks is in compliance_all (HCP Free allowed only 1  hard-mandatory).
+
+./encryption.sentinel:89:1 - Rule "main"
+  Value:
+    true
+
+./encryption.sentinel:86:1 - Rule "ebs_volumes_encrypted"
+  Value:
+    true
+
+./encryption.sentinel:87:1 - Rule "imdsv2_required"
+  Value:
+    true
+
+./encryption.sentinel:85:1 - Rule "instance_disks_encrypted"
+  Value:
+    true
+
+## Policy 3: network (advisory)
+
+Result: true
+
+Description:
+  network.sentinel  ATUL00205200 - Network security policy (L00205200)    What it checks on every inbound (ingress) rule:    1. SSH (port 22) is never open to the whole internet (0.0.0.0/0 or ::/0)    2. nothing else is open to the whole internet, except HTTP 80 / HTTPS 443    Covers the 3 ways to write an inbound rule in the AWS provider:    aws_security_group (inline ingress), aws_security_group_rule,  aws_vpc_security_group_ingress_rule
+
+./network.sentinel:150:1 - Rule "main"
+  Value:
+    true
+
+./network.sentinel:147:1 - Rule "no_public_ssh"
+  Value:
+    true
+
+./network.sentinel:148:1 - Rule "only_web_ports_public"
+  Value:
+    true
+
+## Policy 4: ec2_instance (advisory)
+
+Result: true
+
+Description:
+  ec2_instance.sentinel  ATUL00205200 - EC2 instance type policy (L00205200)    What it checks:    only approved instance types (small, free tier sizes)    Enforcement: ADVISORY. Instance type is mainly a cost rule, and HCP Terraform  Free  had no mandatory slots left for a 5th policy. A failure shows as a warning in  the run.  (IMDSv2 is checked in encryption.sentinel, which is hard-mandatory.)
+
+./ec2_instance.sentinel:37:1 - Rule "main"
+  Value:
+    true
+
+./ec2_instance.sentinel:35:1 - Rule "approved_instance_type"
+  Value:
+    true
+
+## Policy 5: compliance_all (hard-mandatory)
+
+Result: true
+
+Description:
+  compliance_all.sentinel  ATUL00205200 - combined BLOCKING policy (L00205200)    Why this file exists:    HCP Terraform Free only let my organisation have ONE hard-mandatory policy.    So every rule that must block a run is combined here:      A. Digital sovereignty  - approved region, data residency tags, no  cross-region copies      B. Supply chain         - approved providers/modules, exact version pins      C. Encryption + IMDSv2  - encrypted EBS, IMDSv2 required      D. Network              - no SSH from the internet, only 80/443 public    The separate policy files (sovereignty, supply_chain, encryption, network)  contain the    same checks and run as ADVISORY in HCP, so each area also shows its own  result.    Instance type (ec2_instance) is NOT here on purpose - it is a cost rule,  advisory only.
+
+./compliance_all.sentinel:376:1 - Rule "main"
+  Value:
+    true
+
+./compliance_all.sentinel:372:1 - Rule "encryption_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:373:1 - Rule "imdsv2_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:374:1 - Rule "network_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:370:1 - Rule "sovereignty_ok"
+  Value:
+    true
+
+./compliance_all.sentinel:371:1 - Rule "supply_chain_ok"
+  Value:
+    true
+
+
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.

@@ -1,0 +1,91 @@
+# encryption.sentinel
+# ATUL00205200 - EBS encryption + IMDSv2 policy (L00205200)
+#
+# What it checks:
+#   1. every EC2 instance has a root_block_device with encrypted = true
+#   2. any extra ebs_block_device on the instance is encrypted
+#   3. every aws_ebs_volume has encrypted = true
+#   4. IMDSv2 is mandatory on every EC2 instance (metadata_options.http_tokens = "required")
+# If a setting is not there at all it counts as a FAIL (must be explicit).
+#
+# IMDSv2 is checked here (not in ec2_instance) because it is a security rule, while
+# ec2_instance is only a cost rule. In HCP this policy runs as ADVISORY - the blocking
+# version of these checks is in compliance_all (HCP Free allowed only 1 hard-mandatory).
+
+import "tfplan/v2" as tfplan
+
+changes = filter tfplan.resource_changes as _, rc {
+	rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+instances = filter changes as _, rc { rc.type is "aws_instance" }
+volumes = filter changes as _, rc { rc.type is "aws_ebs_volume" }
+
+check_instance_disks = func() {
+	ok = true
+	for instances as address, rc {
+		root = rc.change.after.root_block_device else []
+		if root is null or length(root) is 0 {
+			print("FAIL:", address, "has no root_block_device block, encryption is not set")
+			ok = false
+		} else if (root[0].encrypted else false) is not true {
+			print("FAIL:", address, "root disk is not encrypted")
+			ok = false
+		}
+
+		extra = rc.change.after.ebs_block_device else []
+		if extra is null {
+			extra = []
+		}
+		for extra as disk {
+			if (disk.encrypted else false) is not true {
+				print("FAIL:", address, "has an extra ebs_block_device that is not encrypted")
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
+check_volumes = func() {
+	ok = true
+	for volumes as address, rc {
+		if (rc.change.after.encrypted else false) is not true {
+			print("FAIL:", address, "EBS volume is not encrypted")
+			ok = false
+		}
+	}
+	return ok
+}
+
+check_imdsv2 = func() {
+	ok = true
+	for instances as address, rc {
+		opts = rc.change.after.metadata_options else []
+		if opts is null {
+			opts = []
+		}
+		tokens = "not set"
+		if length(opts) > 0 {
+			tokens = opts[0].http_tokens else "not set"
+		}
+		if tokens is not "required" {
+			print("FAIL:", address, "http_tokens is", tokens, "- IMDSv2 (required) is mandatory")
+			ok = false
+		}
+	}
+	return ok
+}
+
+instance_disk_result = check_instance_disks()
+volume_result = check_volumes()
+imdsv2_result = check_imdsv2()
+
+instance_disks_encrypted = rule { instance_disk_result }
+ebs_volumes_encrypted = rule { volume_result }
+imdsv2_required = rule { imdsv2_result }
+
+main = rule {
+	instance_disks_encrypted and ebs_volumes_encrypted and imdsv2_required
+}

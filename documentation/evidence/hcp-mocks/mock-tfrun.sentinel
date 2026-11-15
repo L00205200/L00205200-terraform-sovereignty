@@ -1,0 +1,43 @@
+id = "run-FUP6o7Wzw9ZsXHz7"
+created_at = "2026-11-14T19:51:31.664Z"
+created_by = "rajuaugustine"
+message = "Triggered via CLI"
+commit_sha = undefined
+speculative = true
+is_destroy = false
+refresh = true
+refresh_only = false
+replace_addrs = null
+target_addrs = null
+project = {
+	"id":   "prj-wCvnEK3wrD4eXJJH",
+	"name": "Default Project",
+}
+
+variables = {
+	"AWS_ACCESS_KEY_ID": {
+		"category":  "env",
+		"sensitive": true,
+	},
+	"AWS_SECRET_ACCESS_KEY": {
+		"category":  "env",
+		"sensitive": true,
+	},
+}
+
+organization = {
+	"name": "ATUL00205200",
+}
+
+workspace = {
+	"auto_apply":        false,
+	"created_at":        "2026-11-14T17:41:30.412Z",
+	"description":       null,
+	"execution_mode":    "default",
+	"id":                "ws-BoA4JvFVEmpirGcF",
+	"name":              "sovereignty-ie",
+	"tag_bindings":      [],
+	"tags":              [],
+	"vcs_repo":          null,
+	"working_directory": null,
+}

@@ -1,0 +1,22 @@
+# Terraform working files - never commit these
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# the non-compliant test file must never be committed inside terraform/
+terraform/*.auto.tfvars
+
+# secrets
+*.pem
+.env
+credentials
+
+# KEEP these (needed for the assignment):
+#   terraform/.terraform.lock.hcl
+#   terraform/tfplan

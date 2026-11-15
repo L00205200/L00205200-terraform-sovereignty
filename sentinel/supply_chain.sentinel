@@ -1,0 +1,87 @@
+# supply_chain.sentinel
+# ATUL00205200 - IaC supply chain policy (L00205200)
+#
+# What it checks (uses the Terraform CONFIG, not the plan):
+#   1. providers only come from approved sources
+#   2. root module providers are pinned to an approved exact version
+#   3. modules only come from trusted sources (approved registry modules or local ./ folders)
+#   4. registry modules are pinned to an exact version (x.y.z) - no ranges like ~> or >=
+#
+# Note: Sentinel cannot read .terraform.lock.hcl, so provider checksums are checked
+# in the GitHub Actions workflow instead (terraform init -lockfile=readonly).
+
+import "tfconfig/v2" as tfconfig
+import "strings"
+
+# provider source => list of approved exact versions
+approved_providers = {
+	"registry.terraform.io/hashicorp/aws": ["6.63.0"],
+}
+
+approved_module_sources = [
+	"terraform-aws-modules/vpc/aws",
+]
+
+exact_version_regex = "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+clean_version = func(v) {
+	v = strings.trim_space(v)
+	v = strings.trim_prefix(v, "=")
+	return strings.trim_space(v)
+}
+
+is_local_source = func(src) {
+	return strings.has_prefix(src, "./") or strings.has_prefix(src, "../")
+}
+
+check_providers = func() {
+	ok = true
+	for tfconfig.providers as key, p {
+		source = p.full_name else "unknown"
+		if source not in keys(approved_providers) {
+			print("FAIL: provider", key, "comes from", source, "- not an approved source")
+			ok = false
+			continue
+		}
+		# only the root module decides the real version, child modules can use ranges
+		if (p.module_address else "") is "" {
+			version = clean_version(p.version_constraint else "")
+			if version not in approved_providers[source] {
+				print("FAIL: provider", key, "version is '" + (p.version_constraint else "") + "' - approved:", approved_providers[source])
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
+check_modules = func() {
+	ok = true
+	for tfconfig.module_calls as key, m {
+		source = m.source else ""
+		if is_local_source(source) {
+			continue
+		}
+		if source not in approved_module_sources {
+			print("FAIL: module", key, "source", source, "is not a trusted module source")
+			ok = false
+			continue
+		}
+		version = clean_version(m.version_constraint else "")
+		if not (version matches exact_version_regex) {
+			print("FAIL: module", key, "version is '" + (m.version_constraint else "") + "' - must be pinned to an exact x.y.z version")
+			ok = false
+		}
+	}
+	return ok
+}
+
+provider_result = check_providers()
+module_result = check_modules()
+
+providers_approved_and_pinned = rule { provider_result }
+modules_trusted_and_pinned = rule { module_result }
+
+main = rule {
+	providers_approved_and_pinned and modules_trusted_and_pinned
+}

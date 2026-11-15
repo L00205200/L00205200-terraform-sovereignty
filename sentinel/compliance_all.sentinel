@@ -1,0 +1,382 @@
+# compliance_all.sentinel
+# ATUL00205200 - combined BLOCKING policy (L00205200)
+#
+# Why this file exists:
+#   HCP Terraform Free only let my organisation have ONE hard-mandatory policy.
+#   So every rule that must block a run is combined here:
+#     A. Digital sovereignty  - approved region, data residency tags, no cross-region copies
+#     B. Supply chain         - approved providers/modules, exact version pins
+#     C. Encryption + IMDSv2  - encrypted EBS, IMDSv2 required
+#     D. Network              - no SSH from the internet, only 80/443 public
+#   The separate policy files (sovereignty, supply_chain, encryption, network) contain the
+#   same checks and run as ADVISORY in HCP, so each area also shows its own result.
+#   Instance type (ec2_instance) is NOT here on purpose - it is a cost rule, advisory only.
+
+import "tfplan/v2" as tfplan
+import "tfconfig/v2" as tfconfig
+import "strings"
+
+# ---------------------------------------------------------------- settings
+
+approved_regions = ["eu-west-1"]
+
+data_store_types = [
+	"aws_instance",
+	"aws_ebs_volume",
+	"aws_s3_bucket",
+	"aws_db_instance",
+	"aws_rds_cluster",
+	"aws_dynamodb_table",
+	"aws_efs_file_system",
+]
+
+allowed_classifications = ["public", "internal", "sensitive"]
+
+blocked_copy_types = [
+	"aws_s3_bucket_replication_configuration",
+	"aws_ebs_snapshot_copy",
+	"aws_ami_copy",
+	"aws_dynamodb_table_replica",
+	"aws_db_instance_automated_backups_replication",
+]
+
+approved_providers = {
+	"registry.terraform.io/hashicorp/aws": ["6.63.0"],
+}
+
+approved_module_sources = [
+	"terraform-aws-modules/vpc/aws",
+]
+
+exact_version_regex = "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+world_cidrs = ["0.0.0.0/0", "::/0"]
+public_ports_allowed = [80, 443]
+
+# ---------------------------------------------------------------- shared helpers
+
+changes = filter tfplan.resource_changes as _, rc {
+	rc.mode is "managed" and
+		(rc.change.actions contains "create" or rc.change.actions contains "update")
+}
+
+instances = filter changes as _, rc { rc.type is "aws_instance" }
+volumes = filter changes as _, rc { rc.type is "aws_ebs_volume" }
+
+as_list = func(v) {
+	if v is null {
+		return []
+	}
+	return v
+}
+
+get_tags = func(rc) {
+	tags = rc.change.after.tags else {}
+	if tags is null {
+		tags = {}
+	}
+	return tags
+}
+
+# ---------------------------------------------------------------- A. sovereignty
+
+check_region_variable = func() {
+	region = tfplan.variables["region"].value else "not set"
+	if region not in approved_regions {
+		print("FAIL [sovereignty]: var.region is", region, "- approved regions:", approved_regions)
+		return false
+	}
+	return true
+}
+
+check_resource_regions = func() {
+	ok = true
+	for changes as address, rc {
+		region = rc.change.after.region else null
+		if region is not null and region not in approved_regions {
+			print("FAIL [sovereignty]:", address, "is in region", region, "- outside Ireland")
+			ok = false
+		}
+	}
+	return ok
+}
+
+check_data_residency = func() {
+	ok = true
+	for changes as address, rc {
+		if rc.type not in data_store_types {
+			continue
+		}
+		tags = get_tags(rc)
+		classification = tags["DataClassification"] else "missing"
+		if classification not in allowed_classifications {
+			print("FAIL [sovereignty]:", address, "stores data but DataClassification is", classification)
+			ok = false
+		} else if classification is "sensitive" {
+			residency = tags["DataResidency"] else "missing"
+			if residency is not "IE" {
+				print("FAIL [sovereignty]:", address, "holds sensitive data but DataResidency is", residency, "(must be IE)")
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
+check_no_data_copies = func() {
+	ok = true
+	for changes as address, rc {
+		if rc.type in blocked_copy_types {
+			print("FAIL [sovereignty]:", address, "copies data to another location -", rc.type, "is not allowed")
+			ok = false
+		}
+	}
+	return ok
+}
+
+# ---------------------------------------------------------------- B. supply chain
+
+clean_version = func(v) {
+	v = strings.trim_space(v)
+	v = strings.trim_prefix(v, "=")
+	return strings.trim_space(v)
+}
+
+is_local_source = func(src) {
+	return strings.has_prefix(src, "./") or strings.has_prefix(src, "../")
+}
+
+check_providers = func() {
+	ok = true
+	for tfconfig.providers as key, p {
+		source = p.full_name else "unknown"
+		if source not in keys(approved_providers) {
+			print("FAIL [supply_chain]: provider", key, "comes from", source, "- not an approved source")
+			ok = false
+			continue
+		}
+		if (p.module_address else "") is "" {
+			version = clean_version(p.version_constraint else "")
+			if version not in approved_providers[source] {
+				print("FAIL [supply_chain]: provider", key, "version is '" + (p.version_constraint else "") + "' - approved:", approved_providers[source])
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
+check_modules = func() {
+	ok = true
+	for tfconfig.module_calls as key, m {
+		source = m.source else ""
+		if is_local_source(source) {
+			continue
+		}
+		if source not in approved_module_sources {
+			print("FAIL [supply_chain]: module", key, "source", source, "is not a trusted module source")
+			ok = false
+			continue
+		}
+		version = clean_version(m.version_constraint else "")
+		if not (version matches exact_version_regex) {
+			print("FAIL [supply_chain]: module", key, "version is '" + (m.version_constraint else "") + "' - must be pinned to an exact x.y.z version")
+			ok = false
+		}
+	}
+	return ok
+}
+
+# ---------------------------------------------------------------- C. encryption + IMDSv2
+
+check_instance_disks = func() {
+	ok = true
+	for instances as address, rc {
+		root = rc.change.after.root_block_device else []
+		if root is null or length(root) is 0 {
+			print("FAIL [encryption]:", address, "has no root_block_device block, encryption is not set")
+			ok = false
+		} else if (root[0].encrypted else false) is not true {
+			print("FAIL [encryption]:", address, "root disk is not encrypted")
+			ok = false
+		}
+		for as_list(rc.change.after.ebs_block_device else []) as disk {
+			if (disk.encrypted else false) is not true {
+				print("FAIL [encryption]:", address, "has an extra ebs_block_device that is not encrypted")
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
+check_volumes = func() {
+	ok = true
+	for volumes as address, rc {
+		if (rc.change.after.encrypted else false) is not true {
+			print("FAIL [encryption]:", address, "EBS volume is not encrypted")
+			ok = false
+		}
+	}
+	return ok
+}
+
+check_imdsv2 = func() {
+	ok = true
+	for instances as address, rc {
+		opts = as_list(rc.change.after.metadata_options else [])
+		tokens = "not set"
+		if length(opts) > 0 {
+			tokens = opts[0].http_tokens else "not set"
+		}
+		if tokens is not "required" {
+			print("FAIL [imdsv2]:", address, "http_tokens is", tokens, "- IMDSv2 (required) is mandatory")
+			ok = false
+		}
+	}
+	return ok
+}
+
+# ---------------------------------------------------------------- D. network
+
+collect_ingress_rules = func() {
+	rules = []
+	for changes as address, rc {
+		after = rc.change.after
+
+		if rc.type is "aws_security_group" {
+			for as_list(after.ingress else []) as r {
+				cidrs = []
+				for as_list(r.cidr_blocks else []) as c {
+					append(cidrs, c)
+				}
+				for as_list(r.ipv6_cidr_blocks else []) as c {
+					append(cidrs, c)
+				}
+				append(rules, {
+					"address":  address,
+					"protocol": r.protocol else "",
+					"from":     r.from_port else 0,
+					"to":       r.to_port else 65535,
+					"cidrs":    cidrs,
+				})
+			}
+		}
+
+		if rc.type is "aws_security_group_rule" and (after.type else "") is "ingress" {
+			cidrs = []
+			for as_list(after.cidr_blocks else []) as c {
+				append(cidrs, c)
+			}
+			for as_list(after.ipv6_cidr_blocks else []) as c {
+				append(cidrs, c)
+			}
+			append(rules, {
+				"address":  address,
+				"protocol": after.protocol else "",
+				"from":     after.from_port else 0,
+				"to":       after.to_port else 65535,
+				"cidrs":    cidrs,
+			})
+		}
+
+		if rc.type is "aws_vpc_security_group_ingress_rule" {
+			cidrs = []
+			v4 = after.cidr_ipv4 else null
+			v6 = after.cidr_ipv6 else null
+			if v4 is not null {
+				append(cidrs, v4)
+			}
+			if v6 is not null {
+				append(cidrs, v6)
+			}
+			append(rules, {
+				"address":  address,
+				"protocol": after.ip_protocol else "",
+				"from":     after.from_port else 0,
+				"to":       after.to_port else 65535,
+				"cidrs":    cidrs,
+			})
+		}
+	}
+	return rules
+}
+
+is_world_open = func(r) {
+	return any r.cidrs as c { c in world_cidrs }
+}
+
+all_protocols = func(r) {
+	return r.protocol in ["-1", "all"]
+}
+
+covers_port = func(r, port) {
+	if all_protocols(r) {
+		return true
+	}
+	from = r.from
+	to = r.to
+	if from is null {
+		from = 0
+	}
+	if to is null {
+		to = 65535
+	}
+	return from <= port and port <= to
+}
+
+ingress_rules = collect_ingress_rules()
+
+check_ssh = func() {
+	ok = true
+	for ingress_rules as r {
+		if is_world_open(r) and covers_port(r, 22) {
+			print("FAIL [network]:", r.address, "allows SSH (22) from the whole internet", r.cidrs)
+			ok = false
+		}
+	}
+	return ok
+}
+
+check_other_public_ports = func() {
+	ok = true
+	for ingress_rules as r {
+		if not is_world_open(r) {
+			continue
+		}
+		single_web_port = (not all_protocols(r)) and r.from is r.to and r.from in public_ports_allowed
+		if not single_web_port {
+			print("FAIL [network]:", r.address, "opens ports", r.from, "-", r.to, "protocol", r.protocol, "to the whole internet - only 80/443 allowed")
+			ok = false
+		}
+	}
+	return ok
+}
+
+# ---------------------------------------------------------------- run all checks (so every FAIL is printed)
+
+r_region_var = check_region_variable()
+r_resource_regions = check_resource_regions()
+r_residency = check_data_residency()
+r_copies = check_no_data_copies()
+r_providers = check_providers()
+r_modules = check_modules()
+r_disks = check_instance_disks()
+r_volumes = check_volumes()
+r_imdsv2 = check_imdsv2()
+r_ssh = check_ssh()
+r_public_ports = check_other_public_ports()
+
+sovereignty_ok = rule { r_region_var and r_resource_regions and r_residency and r_copies }
+supply_chain_ok = rule { r_providers and r_modules }
+encryption_ok = rule { r_disks and r_volumes }
+imdsv2_ok = rule { r_imdsv2 }
+network_ok = rule { r_ssh and r_public_ports }
+
+main = rule {
+	sovereignty_ok and
+	supply_chain_ok and
+	encryption_ok and
+	imdsv2_ok and
+	network_ok
+}

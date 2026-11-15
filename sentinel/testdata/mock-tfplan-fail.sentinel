@@ -1,0 +1,169 @@
+# mock-tfplan-fail.sentinel
+# Hand-made mock of a NON-COMPLIANT plan. Every policy should FAIL on this one:
+#   - us-east-1 region + an offshore backup bucket
+#   - sensitive EBS volume missing DataResidency, a replication resource
+#   - t3.large + IMDSv1 allowed
+#   - root disk and EBS volume not encrypted
+#   - SSH and port 8080 open to 0.0.0.0/0
+
+terraform_version = "1.17.1"
+
+variables = {
+	"region":           {"name": "region", "value": "us-east-1"},
+	"instance_type":    {"name": "instance_type", "value": "t3.large"},
+	"imds_http_tokens": {"name": "imds_http_tokens", "value": "optional"},
+	"ebs_encrypted":    {"name": "ebs_encrypted", "value": false},
+	"admin_cidr":       {"name": "admin_cidr", "value": "0.0.0.0/0"},
+}
+
+resource_changes = {
+	"aws_instance.app": {
+		"address":        "aws_instance.app",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "app",
+		"type":           "aws_instance",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"instance_type":               "t3.large",
+				"region":                      "us-east-1",
+				"associate_public_ip_address": false,
+				"metadata_options": [
+					{
+						"http_endpoint":               "enabled",
+						"http_tokens":                 "optional",
+						"http_put_response_hop_limit": 1,
+					},
+				],
+				"root_block_device": [
+					{
+						"encrypted":   false,
+						"volume_size": 8,
+						"volume_type": "gp3",
+					},
+				],
+				"ebs_block_device": [],
+				"tags": {
+					"Name": "atul00205200-app",
+				},
+			},
+			"after_unknown": {"id": true, "subnet_id": true},
+		},
+	},
+	"aws_ebs_volume.data": {
+		"address":        "aws_ebs_volume.data",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "data",
+		"type":           "aws_ebs_volume",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"availability_zone": "us-east-1a",
+				"encrypted":         false,
+				"region":            "us-east-1",
+				"size":              1,
+				"type":              "gp3",
+				"tags": {
+					"Name":               "atul00205200-data",
+					"DataClassification": "sensitive",
+				},
+			},
+			"after_unknown": {"id": true},
+		},
+	},
+	"aws_s3_bucket.offshore_backup[0]": {
+		"address":        "aws_s3_bucket.offshore_backup[0]",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "offshore_backup",
+		"type":           "aws_s3_bucket",
+		"index":          0,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"bucket_prefix": "atul00205200-backup-",
+				"force_destroy": true,
+				"region":        "us-east-1",
+				"tags": {
+					"Name":               "atul00205200-backup",
+					"DataClassification": "sensitive",
+				},
+			},
+			"after_unknown": {"id": true, "bucket": true},
+		},
+	},
+	"aws_s3_bucket_replication_configuration.records": {
+		"address":        "aws_s3_bucket_replication_configuration.records",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "records",
+		"type":           "aws_s3_bucket_replication_configuration",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"region": "us-east-1",
+			},
+			"after_unknown": {"id": true, "bucket": true, "role": true},
+		},
+	},
+	"aws_security_group.app": {
+		"address":        "aws_security_group.app",
+		"mode":           "managed",
+		"module_address": "",
+		"name":           "app",
+		"type":           "aws_security_group",
+		"index":          null,
+		"deposed":        "",
+		"provider_name":  "registry.terraform.io/hashicorp/aws",
+		"change": {
+			"actions": ["create"],
+			"before":  null,
+			"after": {
+				"region": "us-east-1",
+				"ingress": [
+					{
+						"description":      "SSH from anywhere",
+						"from_port":        22,
+						"to_port":          22,
+						"protocol":         "tcp",
+						"cidr_blocks":      ["0.0.0.0/0"],
+						"ipv6_cidr_blocks": [],
+						"prefix_list_ids":  [],
+						"security_groups":  [],
+						"self":             false,
+					},
+					{
+						"description":      "Test app port",
+						"from_port":        8080,
+						"to_port":          8080,
+						"protocol":         "tcp",
+						"cidr_blocks":      ["0.0.0.0/0"],
+						"ipv6_cidr_blocks": ["::/0"],
+						"prefix_list_ids":  [],
+						"security_groups":  [],
+						"self":             false,
+					},
+				],
+				"tags": {"Name": "atul00205200-app-sg"},
+			},
+			"after_unknown": {"id": true, "vpc_id": true},
+		},
+	},
+}
